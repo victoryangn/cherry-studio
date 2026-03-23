@@ -10,7 +10,6 @@ import { WEB_SEARCH_SOURCE } from '@renderer/types'
 import type { Chunk } from '@renderer/types/chunk'
 import { ChunkType } from '@renderer/types/chunk'
 import { AssistantMessageStatus, MessageBlockStatus, MessageBlockType } from '@renderer/types/newMessage'
-import type * as errorUtils from '@renderer/utils/error'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RootState } from '../../index'
@@ -43,7 +42,7 @@ const createMockCallbacks = (
 
 // Mock external dependencies
 vi.mock('@renderer/config/models', async (importOriginal) => {
-  const actual = (await importOriginal()) as Record<string, unknown>
+  const actual = await importOriginal()
   return {
     ...actual,
     qwen3Model: {
@@ -252,7 +251,7 @@ vi.mock('i18next', () => {
 })
 
 vi.mock('@renderer/utils/error', async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof errorUtils
+  const actual = await importOriginal()
   return {
     ...actual,
     formatErrorMessage: vi.fn((error) => error.message || 'Unknown error'),
