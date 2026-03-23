@@ -220,7 +220,7 @@ export class AgentMessageDataSource implements MessageDataSource {
       const thoughtSignatures: Record<string, string> = {}
       for (const block of blocks) {
         if (block.type === MessageBlockType.MAIN_TEXT && block.metadata?.thoughtSignature) {
-          thoughtSignatures[block.id] = block.metadata!.thoughtSignature
+          thoughtSignatures[block.id] = block.metadata.thoughtSignature
         }
       }
 
