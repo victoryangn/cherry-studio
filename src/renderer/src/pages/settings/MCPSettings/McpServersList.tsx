@@ -84,17 +84,16 @@ const McpServersList: FC = () => {
       env: {},
       isActive: false
     })
-    navigate({ to: `/settings/mcp/settings/${encodeURIComponent(newServer.id)}` })
+    navigate({ to: `/settings/mcp/settings/${newServer.id}` })
     window.toast.success(t('settings.mcp.addSuccess'))
   }, [addMCPServer, navigate, t])
 
   const handleAddServerSuccess = useCallback(
-    async (server: MCPServer) => {
-      addMCPServer(server)
+    async (server: MCPServer): Promise<MCPServer> => {
+      const created = await addMCPServer(server)
       setIsAddModalVisible(false)
       window.toast.success(t('settings.mcp.addSuccess'))
-      // Optionally navigate to the new server's settings page
-      // navigate(`/settings/mcp/settings/${encodeURIComponent(server.id)}`)
+      return created
     },
     [addMCPServer, t]
   )
@@ -165,10 +164,7 @@ const McpServersList: FC = () => {
         useDragOverlay
         showGhost
         renderItem={(server) => (
-          <McpServerCard
-            server={server}
-            onEdit={() => navigate({ to: `/settings/mcp/settings/${encodeURIComponent(server.id)}` })}
-          />
+          <McpServerCard server={server} onEdit={() => navigate({ to: `/settings/mcp/settings/${server.id}` })} />
         )}
       />
       {(mcpServers.length === 0 || filteredMcpServers.length === 0) && (

@@ -8,7 +8,7 @@ import { useCallback, useMemo } from 'react'
 // Navigate to MCP server settings when a server is installed via URL scheme
 window.electron.ipcRenderer.on(IpcChannel.Mcp_AddServer, (_event, server: { id: string }) => {
   NavigationService.navigate?.({ to: '/settings/mcp' })
-  NavigationService.navigate?.({ to: `/settings/mcp/settings/${encodeURIComponent(server.id)}` })
+  NavigationService.navigate?.({ to: `/settings/mcp/settings/${server.id}` })
 })
 
 /**
@@ -70,7 +70,7 @@ export const useMCPServer = (id: string) => {
  * Use when server data is already available from a parent (e.g. from useMCPServers list).
  */
 export const useMCPServerMutations = (id: string) => {
-  const path = `/mcp-servers/${encodeURIComponent(id)}` as const
+  const path = `/mcp-servers/${id}` as const
 
   const { trigger: updateMCPServer } = useMutation('PATCH', path, {
     refresh: ['/mcp-servers']

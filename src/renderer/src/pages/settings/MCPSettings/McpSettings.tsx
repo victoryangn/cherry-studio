@@ -72,8 +72,7 @@ const McpSettings: React.FC = () => {
   const { t } = useTranslation()
   const params = useParams({ strict: false }) as { serverId?: string }
   const serverId = params.serverId
-  const decodedServerId = serverId ? decodeURIComponent(serverId) : ''
-  const { server, isLoading: isServerLoading, updateMCPServer, deleteMCPServer } = useMCPServer(decodedServerId)
+  const { server, isLoading: isServerLoading, updateMCPServer, deleteMCPServer } = useMCPServer(serverId ?? '')
 
   const updateServerBody = useCallback((body: Partial<MCPServer>) => updateMCPServer({ body }), [updateMCPServer])
 
