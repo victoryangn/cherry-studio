@@ -11,60 +11,73 @@ This skill helps maintain Cherry Studio's compatibility with macOS Big Sur (11.x
 
 Electron 38+ dropped support for macOS Big Sur due to dependency on `QuickLookUI.framework` which is not available on macOS 11.x. This fork uses Electron 37.x to maintain compatibility.
 
-## Workflow 1: Sync & Build Latest Version
-
-Run this complete workflow to sync upstream updates and build a new release:
+## Quick Start
 
 ```bash
-# === Step 1: Pull Upstream Updates ===
+# 1. 检查是否有新版本
 git fetch origin
+LOCAL=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9.]*\)".*/\1/')
+REMOTE=$(git show origin/main:package.json | grep '"version"' | head -1 | sed 's/.*"\([0-9.]*\)".*/\1/')
+echo "本地版本: $LOCAL"
+echo "远程版本: $REMOTE"
+
+if [ "$LOCAL" = "$REMOTE" ]; then
+  echo "✓ 无新版本，无需编译"
+else
+  echo "⚠ 发现新版本 $REMOTE，开始编译..."
+  # 继续执行下面的编译流程
+fi
+```
+
+## Workflow: Sync & Build (仅当有新版本)
+
+```bash
+# === Step 1: 检查版本 ===
+git fetch origin
+LOCAL=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9.]*\)".*/\1/')
+REMOTE=$(git show origin/main:package.json | grep '"version"' | head -1 | sed 's/.*"\([0-9.]*\)".*/\1/')
+
+if [ "$LOCAL" = "$REMOTE" ]; then
+  echo "✓ 当前已是最新版本 $LOCAL，无需操作"
+  exit 0
+fi
+
+echo "发现新版本: $LOCAL → $REMOTE"
+
+# === Step 2: 拉取更新 ===
 git merge origin/main --no-edit
 
-# === Step 2: Restore Big Sur Compatibility ===
-# Downgrade Electron to 37.x (last version supporting Big Sur)
+# === Step 3: 恢复 Big Sur 兼容性 ===
 pnpm add electron@^37.0.0 -D
 
-# === Step 3: Install Dependencies ===
+# === Step 4: 安装依赖 ===
 pnpm install
 
-# === Step 4: Update Version Number (if needed) ===
-# Check current version in package.json and update if necessary
-# sed -i '' 's/"version": "1.8.2"/"version": "1.8.4"/' package.json
-
-# === Step 5: Build the Project ===
+# === Step 5: 构建 ===
 pnpm build
 
-# === Step 6: Package macOS x64 ZIP ===
-# Note: DMG fails on Big Sur due to dmg-builder dependency issues
-# Use ZIP format instead
+# === Step 6: 打包 ZIP ===
 npx electron-builder --mac --x64 --config.mac.target=zip
 
-# === Step 7: Test the Application ===
+# === Step 7: 测试 ===
 pnpm dev
 
-# === Step 8: Commit and Push to Fork ===
+# === Step 8: 提交到 Fork ===
 git add package.json pnpm-lock.yaml
 git commit -m "fix: downgrade Electron to 37.x for macOS Big Sur compatibility"
 git push fork main
-```
 
-## Workflow 2: Quick Build (No Sync)
-
-If you just want to rebuild without syncing:
-
-```bash
-pnpm build
-npx electron-builder --mac --x64 --config.mac.target=zip
+echo "✓ 编译完成: dist/Cherry-Studio-$REMOTE-x64.zip"
 ```
 
 ## Build Output
 
-After successful build, the package will be at:
+编译成功后，安装包位于：
 ```
 dist/Cherry-Studio-{version}-x64.zip
 ```
 
-Extract and run `Cherry Studio.app` to use.
+解压后运行 `Cherry Studio.app` 即可使用。
 
 ## Build Commands Reference
 
@@ -72,9 +85,7 @@ Extract and run `Cherry Studio.app` to use.
 |---------|-------------|
 | `pnpm build` | Full build (typecheck + electron-vite) |
 | `pnpm build:check` | Lint + test (before commit) |
-| `pnpm build:mac:x64` | Build macOS x64 (includes DMG, may fail) |
-| `pnpm build:unpack` | Build without packaging (faster testing) |
-| `npx electron-builder --mac --x64 --config.mac.target=zip` | Build ZIP only (recommended) |
+| `npx electron-builder --mac --x64 --config.mac.target=zip` | Build ZIP only (推荐) |
 
 ## Troubleshooting
 
@@ -85,7 +96,7 @@ dyld: Library not loaded: /System/Library/Frameworks/QuickLookUI.framework/...
 Reason: image not found
 ```
 
-**Solution:** Electron version is too new. Downgrade:
+**Solution:** Electron 版本太新，降级：
 ```bash
 pnpm add electron@^37.0.0 -D
 ```
@@ -96,49 +107,41 @@ pnpm add electron@^37.0.0 -D
 dyld: Library not loaded: /usr/local/opt/gettext/lib/libintl.8.dylib
 ```
 
-**Solution:** DMG builder has Big Sur compatibility issues. Use ZIP format instead:
+**Solution:** DMG builder 在 Big Sur 上有兼容性问题，使用 ZIP 格式：
 ```bash
 npx electron-builder --mac --x64 --config.mac.target=zip
 ```
 
 ### Build Fails After Sync
 
-1. **Clean and rebuild:**
-   ```bash
-   rm -rf node_modules out dist
-   pnpm install
-   pnpm build
-   ```
-
-2. **If native modules fail:**
-   ```bash
-   pnpm rebuild
-   ```
+```bash
+rm -rf node_modules out dist
+pnpm install
+pnpm build
+```
 
 ### Node.js Version Warnings
 
-- Project requires Node.js >= 24.11.1
-- macOS Big Sur works with Node.js 22.x
-- Warnings are normal, functionality is not affected
+- 项目要求 Node.js >= 24.11.1
+- macOS Big Sur 使用 Node.js 22.x
+- 警告正常，功能不受影响
 
 ## Native Modules Compatibility
 
-All native modules tested on macOS Big Sur:
-- `@napi-rs/system-ocr` - OCR functionality ✓
-- `sharp` - Image processing ✓
-- `@libsql/client` - Database ✓
-- `selection-hook` - Text selection ✓
-- `@napi-rs/canvas` - Canvas rendering ✓
+所有原生模块在 macOS Big Sur 上测试通过：
+- `@napi-rs/system-ocr` - OCR ✓
+- `sharp` - 图像处理 ✓
+- `@libsql/client` - 数据库 ✓
+- `selection-hook` - 文本选择 ✓
+- `@napi-rs/canvas` - Canvas ✓
 
 ## Git Remotes
 
 | Remote | URL | Purpose |
 |--------|-----|---------|
-| `origin` | CherryHQ/cherry-studio | Upstream (official) |
-| `fork` | victoryangn/cherry-studio | Your Big Sur fork |
+| `origin` | CherryHQ/cherry-studio | 上游 (官方) |
+| `fork` | victoryangn/cherry-studio | 你的 Big Sur fork |
 
 ## Code Signing
 
-The build will show a warning about missing code signing identity. This is normal for personal builds. The app will still work, but may show "unidentified developer" warnings when first launched.
-
-To bypass: Right-click the app → Open → Click "Open" in the dialog.
+个人构建会显示代码签名警告，这是正常的。首次运行时：右键点击应用 → 打开 → 点击"打开"。
