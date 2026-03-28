@@ -3,7 +3,7 @@ name: cherry-studio-big-sur
 description: Maintain Cherry Studio's macOS Big Sur (11.x) compatibility. Use when syncing upstream updates or troubleshooting Electron compatibility issues on older macOS versions.
 ---
 
-# macOS Big Sur Compatibility Maintenance
+# Cherry Studio macOS Big Sur Compatibility
 
 This skill helps maintain Cherry Studio's compatibility with macOS Big Sur (11.x).
 
@@ -11,66 +11,90 @@ This skill helps maintain Cherry Studio's compatibility with macOS Big Sur (11.x
 
 Electron 38+ dropped support for macOS Big Sur due to dependency on `QuickLookUI.framework` which is not available on macOS 11.x. This fork uses Electron 37.x to maintain compatibility.
 
-## Sync Upstream Updates
+## Quick Sync Script
 
-When pulling updates from the main Cherry Studio repository:
+Run this complete workflow to sync upstream and rebuild:
 
 ```bash
-# 1. Fetch and merge upstream changes
+# === Step 1: Pull Upstream Updates ===
 git fetch origin
-git merge origin/main
+git merge origin/main --no-edit
 
-# 2. Re-apply Electron 37 downgrade if package.json was updated
+# === Step 2: Restore Big Sur Compatibility ===
+# Downgrade Electron to 37.x (last version supporting Big Sur)
 pnpm add electron@^37.0.0 -D
 
-# 3. Install dependencies
+# === Step 3: Install Dependencies ===
 pnpm install
 
-# 4. Test the application
+# === Step 4: Build the Project ===
+pnpm build
+
+# === Step 5: Test the Application ===
 pnpm dev
 
-# 5. Commit and push to fork
+# === Step 6: Commit and Push to Fork ===
 git add package.json pnpm-lock.yaml
 git commit -m "fix: downgrade Electron to 37.x for macOS Big Sur compatibility"
 git push fork main
 ```
 
+## Build Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `pnpm build` | Full build (typecheck + electron-vite) |
+| `pnpm build:check` | Lint + test (before commit) |
+| `pnpm build:mac` | Build macOS app (arm64 + x64) |
+| `pnpm build:mac:x64` | Build macOS x64 only |
+| `pnpm build:unpack` | Build without packaging (faster testing) |
+
 ## Troubleshooting
 
 ### QuickLookUI Error
 
-If you see this error:
 ```
 dyld: Library not loaded: /System/Library/Frameworks/QuickLookUI.framework/...
 Reason: image not found
 ```
 
-Solution: Downgrade Electron to 37.x:
+**Solution:** Electron version is too new. Downgrade:
 ```bash
 pnpm add electron@^37.0.0 -D
 ```
 
-### Node.js Version
+### Build Fails After Sync
 
-- This project requires Node.js >= 24.11.1
-- macOS Big Sur supports Node.js up to 22.x
-- Node.js 22.x works for development but may show warnings
+1. **Clean and rebuild:**
+   ```bash
+   rm -rf node_modules out dist
+   pnpm install
+   pnpm build
+   ```
 
-### Native Modules
+2. **If native modules fail:**
+   ```bash
+   pnpm rebuild
+   ```
 
-All native modules have been tested and work on macOS Big Sur:
-- `@napi-rs/system-ocr` - OCR functionality
-- `sharp` - Image processing
-- `@libsql/client` - Database
-- `selection-hook` - Text selection monitoring
-- `@napi-rs/canvas` - Canvas rendering
+### Node.js Version Warnings
 
-## Key Files
+- Project requires Node.js >= 24.11.1
+- macOS Big Sur works with Node.js 22.x
+- Warnings are normal, functionality is not affected
 
-- `package.json` - Electron version should be `^37.0.0`
-- `pnpm-lock.yaml` - Locked dependencies
+## Native Modules Compatibility
+
+All native modules tested on macOS Big Sur:
+- `@napi-rs/system-ocr` - OCR functionality ✓
+- `sharp` - Image processing ✓
+- `@libsql/client` - Database ✓
+- `selection-hook` - Text selection ✓
+- `@napi-rs/canvas` - Canvas rendering ✓
 
 ## Git Remotes
 
-- `origin` → https://github.com/CherryHQ/cherry-studio.git (upstream)
-- `fork` → Your personal fork for Big Sur compatibility
+| Remote | URL | Purpose |
+|--------|-----|---------|
+| `origin` | CherryHQ/cherry-studio | Upstream (official) |
+| `fork` | victoryangn/cherry-studio | Your Big Sur fork |
